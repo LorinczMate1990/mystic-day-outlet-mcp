@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { FetchMessageObject, ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
@@ -13,13 +17,19 @@ export class EmailHandlerService {
 
   async listEmails(from: Date, to: Date): Promise<EmailHeader[]> {
     return this.withMailbox(async (client) => {
-      const uids = await client.search({ since: from, before: to }, { uid: true });
+      const uids = await client.search(
+        { since: from, before: to },
+        { uid: true },
+      );
       if (!uids) {
         return [];
       }
 
       const headers: EmailHeader[] = [];
-      for await (const message of client.fetch(uids, { envelope: true, uid: true })) {
+      for await (const message of client.fetch(uids, {
+        envelope: true,
+        uid: true,
+      })) {
         headers.push(this.toEmailHeader(message));
       }
       return headers;
@@ -32,7 +42,11 @@ export class EmailHandlerService {
     }
 
     return this.withMailbox(async (client) => {
-      const message = await client.fetchOne(id, { envelope: true, uid: true, source: true }, { uid: true });
+      const message = await client.fetchOne(
+        id,
+        { envelope: true, uid: true, source: true },
+        { uid: true },
+      );
 
       if (!message || !message.source) {
         throw new NotFoundException(`E-mail with id "${id}" not found`);
@@ -43,7 +57,11 @@ export class EmailHandlerService {
       return {
         header: this.toEmailHeader(message),
         body: parsed.text ?? '',
-        attachments: parsed.attachments.map((attachment) => attachment.content),
+        attachments: parsed.attachments.map((attachment) => ({
+          filename: attachment.filename ?? 'attachment',
+          contentType: attachment.contentType,
+          content: attachment.content,
+        })),
       };
     });
   }
@@ -61,10 +79,14 @@ export class EmailHandlerService {
   }
 
   private toAddressList(addresses?: { address?: string }[]): string[] {
-    return (addresses ?? []).map((address) => address.address).filter((address): address is string => !!address);
+    return (addresses ?? [])
+      .map((address) => address.address)
+      .filter((address): address is string => !!address);
   }
 
-  private async withMailbox<T>(fn: (client: ImapFlow) => Promise<T>): Promise<T> {
+  private async withMailbox<T>(
+    fn: (client: ImapFlow) => Promise<T>,
+  ): Promise<T> {
     const client = this.createClient();
     await client.connect();
 
