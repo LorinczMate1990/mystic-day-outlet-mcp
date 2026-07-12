@@ -35,10 +35,11 @@ export class EmailHandlerService {
       this.logger.debug(`Search matched ${uids.length} UID(s)`);
 
       const headers: EmailHeader[] = [];
-      for await (const message of client.fetch(uids, {
-        envelope: true,
-        uid: true,
-      })) {
+      for await (const message of client.fetch(
+        uids,
+        { envelope: true, uid: true },
+        { uid: true },
+      )) {
         headers.push(this.toEmailHeader(message));
       }
       this.logger.log(`Fetched ${headers.length} e-mail header(s)`);
