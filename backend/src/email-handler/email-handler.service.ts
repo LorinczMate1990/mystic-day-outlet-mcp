@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -13,17 +14,25 @@ const MAILBOX = 'INBOX';
 
 @Injectable()
 export class EmailHandlerService {
+  private readonly logger = new Logger(EmailHandlerService.name);
+
   constructor(private readonly configService: ConfigService) {}
 
   async listEmails(from: Date, to: Date): Promise<EmailHeader[]> {
+    this.logger.log(
+      `Listing e-mails between ${from.toISOString()} and ${to.toISOString()}`,
+    );
+
     return this.withMailbox(async (client) => {
       const uids = await client.search(
         { since: from, before: to },
         { uid: true },
       );
       if (!uids) {
+        this.logger.debug('Search returned no matching UIDs');
         return [];
       }
+      this.logger.debug(`Search matched ${uids.length} UID(s)`);
 
       const headers: EmailHeader[] = [];
       for await (const message of client.fetch(uids, {
@@ -32,6 +41,7 @@ export class EmailHandlerService {
       })) {
         headers.push(this.toEmailHeader(message));
       }
+      this.logger.log(`Fetched ${headers.length} e-mail header(s)`);
       return headers;
     });
   }
@@ -41,6 +51,8 @@ export class EmailHandlerService {
       throw new BadRequestException(`"${id}" is not a valid e-mail id`);
     }
 
+    this.logger.log(`Fetching e-mail "${id}"`);
+
     return this.withMailbox(async (client) => {
       const message = await client.fetchOne(
         id,
@@ -49,10 +61,14 @@ export class EmailHandlerService {
       );
 
       if (!message || !message.source) {
+        this.logger.warn(`E-mail with id "${id}" not found`);
         throw new NotFoundException(`E-mail with id "${id}" not found`);
       }
 
       const parsed = await simpleParser(message.source);
+      this.logger.debug(
+        `Parsed e-mail "${id}": ${parsed.attachments.length} attachment(s)`,
+      );
 
       return {
         header: this.toEmailHeader(message),
@@ -88,21 +104,51 @@ export class EmailHandlerService {
     fn: (client: ImapFlow) => Promise<T>,
   ): Promise<T> {
     const client = this.createClient();
-    await client.connect();
+    const host = this.configService.getOrThrow<string>('EMAIL_IMAP_HOST');
+    const port = this.configService.get<number>('EMAIL_IMAP_PORT', 993);
+
+    this.logger.debug(`Connecting to ${host}:${port}`);
+    try {
+      await client.connect();
+    } catch (error) {
+      this.logger.error(
+        `Failed to connect/authenticate to ${host}:${port}: ${this.describeError(error)}`,
+      );
+      throw error;
+    }
+    this.logger.debug(`Connected to ${host}:${port}`);
 
     try {
       const lock = await client.getMailboxLock(MAILBOX);
+      this.logger.debug(`Locked mailbox "${MAILBOX}"`);
       try {
         return await fn(client);
+      } catch (error) {
+        this.logger.error(
+          `Mailbox operation on "${MAILBOX}" failed: ${this.describeError(error)}`,
+        );
+        throw error;
       } finally {
         lock.release();
+        this.logger.debug(`Released lock on mailbox "${MAILBOX}"`);
       }
     } finally {
       await client.logout();
+      this.logger.debug(`Logged out of ${host}:${port}`);
     }
   }
 
+  private describeError(error: unknown): string {
+    if (error instanceof Error) {
+      const details = (error as { responseText?: string }).responseText;
+      return details ? `${error.message} (${details})` : error.message;
+    }
+    return String(error);
+  }
+
   private createClient(): ImapFlow {
+    const debug = this.configService.get<boolean>('EMAIL_IMAP_DEBUG', false);
+
     return new ImapFlow({
       host: this.configService.getOrThrow<string>('EMAIL_IMAP_HOST'),
       port: this.configService.get<number>('EMAIL_IMAP_PORT', 993),
@@ -111,7 +157,14 @@ export class EmailHandlerService {
         user: this.configService.getOrThrow<string>('EMAIL_IMAP_USER'),
         pass: this.configService.getOrThrow<string>('EMAIL_IMAP_PASSWORD'),
       },
-      logger: false,
+      logger: debug
+        ? {
+            debug: (obj: unknown) => this.logger.debug(JSON.stringify(obj)),
+            info: (obj: unknown) => this.logger.log(JSON.stringify(obj)),
+            warn: (obj: unknown) => this.logger.warn(JSON.stringify(obj)),
+            error: (obj: unknown) => this.logger.error(JSON.stringify(obj)),
+          }
+        : false,
     });
   }
 }
