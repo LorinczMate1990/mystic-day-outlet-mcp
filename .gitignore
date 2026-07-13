@@ -11,6 +11,9 @@ build/
 .env.*
 !.env.example
 
+# Postgres bind-mounted data directory
+/data/postgres/
+
 # Logs
 logs
 *.log
