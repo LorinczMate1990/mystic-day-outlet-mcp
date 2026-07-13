@@ -122,7 +122,8 @@ export class McpServerFactory {
       'push_draft',
       {
         title: 'Push e-mail draft',
-        description: "Create a draft e-mail in the mailbox's Drafts folder. Optionally thread it as a reply to an existing e-mail.",
+        description:
+          "Create a draft e-mail in the mailbox's Drafts folder. Optionally thread it as a reply to an existing e-mail.",
         inputSchema: {
           to: z
             .array(z.string())
@@ -132,6 +133,13 @@ export class McpServerFactory {
             ),
           subject: z.string().describe('E-mail subject'),
           body: z.string().describe('E-mail body (plain text)'),
+          htmlBody: z
+            .string()
+            .optional()
+            .describe(
+              'Optional HTML alternative body. When set, the draft is sent as multipart/alternative ' +
+                '(both the plain-text body and this HTML get included, so clients that cannot render HTML fall back to text).',
+            ),
           replyTo: z
             .string()
             .optional()
@@ -141,14 +149,15 @@ export class McpServerFactory {
             ),
         },
       },
-      async ({ to, subject, body, replyTo }) => {
+      async ({ to, subject, body, htmlBody, replyTo }) => {
         this.logger.log(
-          `Tool "push_draft" called: to=[${to.join(', ')}]${replyTo ? ` replyTo="${replyTo}"` : ''}`,
+          `Tool "push_draft" called: to=[${to.join(', ')}]${htmlBody ? ' (with html)' : ''}${replyTo ? ` replyTo="${replyTo}"` : ''}`,
         );
         const result = await this.emailHandlerService.pushDraft({
           to,
           subject,
           body,
+          htmlBody,
           replyTo,
         });
 

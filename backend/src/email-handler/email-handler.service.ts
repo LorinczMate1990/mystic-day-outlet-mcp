@@ -156,6 +156,7 @@ export class EmailHandlerService {
       to,
       subject,
       body: input.body,
+      htmlBody: input.htmlBody,
       inReplyTo: replyHeaders?.inReplyTo,
       references: replyHeaders?.references,
     });
@@ -230,6 +231,7 @@ export class EmailHandlerService {
     to: string[];
     subject: string;
     body: string;
+    htmlBody?: string;
     inReplyTo?: string;
     references?: string;
   }): Promise<Buffer> {
@@ -238,6 +240,7 @@ export class EmailHandlerService {
       to: options.to,
       subject: options.subject,
       text: options.body,
+      html: options.htmlBody,
       inReplyTo: options.inReplyTo,
       references: options.references,
     });

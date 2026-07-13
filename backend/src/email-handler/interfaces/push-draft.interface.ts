@@ -2,6 +2,8 @@ export interface PushDraftInput {
   to: string[];
   subject: string;
   body: string;
+  /** Optional HTML alternative body. When set, the draft becomes multipart/alternative (text + html). */
+  htmlBody?: string;
   /** UID (as returned by list_emails/get_email) of the message this draft replies to. */
   replyTo?: string;
 }
