@@ -8,6 +8,8 @@ import { ConfigService } from '@nestjs/config';
 import { FetchMessageObject, ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import MailComposer from 'nodemailer/lib/mail-composer';
+import { EmailSignature } from '../email-signature/entities/email-signature.entity';
+import { EmailSignatureService } from '../email-signature/email-signature.service';
 import { EmailDetail } from './interfaces/email-detail.interface';
 import { EmailHeader } from './interfaces/email-header.interface';
 import {
@@ -27,7 +29,10 @@ interface ReplyHeaders {
 export class EmailHandlerService {
   private readonly logger = new Logger(EmailHandlerService.name);
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly emailSignatureService: EmailSignatureService,
+  ) {}
 
   async listEmails(from: Date, to: Date): Promise<EmailHeader[]> {
     this.logger.log(
@@ -151,12 +156,19 @@ export class EmailHandlerService {
       ? this.withReplyPrefix(input.subject)
       : input.subject;
 
+    const signature = await this.emailSignatureService.getSignature();
+    const { body, htmlBody } = this.appendSignature(
+      input.body,
+      input.htmlBody,
+      signature,
+    );
+
     const source = await this.buildDraftSource({
       from,
       to,
       subject,
-      body: input.body,
-      htmlBody: input.htmlBody,
+      body,
+      htmlBody,
       inReplyTo: replyHeaders?.inReplyTo,
       references: replyHeaders?.references,
     });
@@ -224,6 +236,24 @@ export class EmailHandlerService {
 
   private withReplyPrefix(subject: string): string {
     return /^re:/i.test(subject.trim()) ? subject : `Re: ${subject}`;
+  }
+
+  private appendSignature(
+    body: string,
+    htmlBody: string | undefined,
+    signature: EmailSignature | null,
+  ): { body: string; htmlBody?: string } {
+    if (!signature) {
+      return { body, htmlBody };
+    }
+
+    return {
+      body: signature.textBody ? `${body}\n\n-- \n${signature.textBody}` : body,
+      htmlBody:
+        htmlBody && signature.htmlBody
+          ? `${htmlBody}<br><br>${signature.htmlBody}`
+          : htmlBody,
+    };
   }
 
   private async buildDraftSource(options: {

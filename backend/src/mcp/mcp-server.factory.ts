@@ -132,13 +132,18 @@ export class McpServerFactory {
               'Recipient e-mail addresses (before the ".generated" suffix is appended)',
             ),
           subject: z.string().describe('E-mail subject'),
-          body: z.string().describe('E-mail body (plain text)'),
+          body: z
+            .string()
+            .describe(
+              'E-mail body (plain text). The configured e-mail signature, if any, is appended automatically — do not add your own signature.',
+            ),
           htmlBody: z
             .string()
             .optional()
             .describe(
               'Optional HTML alternative body. When set, the draft is sent as multipart/alternative ' +
-                '(both the plain-text body and this HTML get included, so clients that cannot render HTML fall back to text).',
+                '(both the plain-text body and this HTML get included, so clients that cannot render HTML fall back to text). ' +
+                'The configured HTML signature, if any, is appended automatically — do not add your own signature.',
             ),
           replyTo: z
             .string()
