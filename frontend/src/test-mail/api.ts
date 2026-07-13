@@ -1,6 +1,6 @@
 import type { EmailDetail, EmailHeader } from './types';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:7000';
+const API_BASE_URL = '/api';
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
