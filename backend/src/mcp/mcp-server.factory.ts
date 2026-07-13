@@ -22,8 +22,11 @@ export class McpServerFactory {
         instructions:
           'This server manages e-mail for the Mystic Day Outlet webshop mailbox. ' +
           'When asked about e-mails for this shop, use list_emails / get_email / ' +
-          'find_emails_by_address from this server — do not use Gmail or other ' +
-          'generic e-mail tools for this mailbox.',
+          'find_emails_by_address / push_draft from this server — do not use Gmail ' +
+          'or other generic e-mail tools for this mailbox. push_draft only creates ' +
+          'a draft (recipients are suffixed with ".generated" so nothing can ever ' +
+          'be sent accidentally) — it never sends anything, so it is safe to call ' +
+          'directly without human approval.',
       },
     );
 
@@ -111,6 +114,46 @@ export class McpServerFactory {
 
         return {
           content: [{ type: 'text', text: JSON.stringify(headers, null, 2) }],
+        };
+      },
+    );
+
+    server.registerTool(
+      'push_draft',
+      {
+        title: 'Push e-mail draft',
+        description: "Create a draft e-mail in the mailbox's Drafts folder. Optionally thread it as a reply to an existing e-mail.",
+        inputSchema: {
+          to: z
+            .array(z.string())
+            .min(1)
+            .describe(
+              'Recipient e-mail addresses (before the ".generated" suffix is appended)',
+            ),
+          subject: z.string().describe('E-mail subject'),
+          body: z.string().describe('E-mail body (plain text)'),
+          replyTo: z
+            .string()
+            .optional()
+            .describe(
+              'UID of the e-mail this draft replies to, as returned by list_emails/get_email. ' +
+                'When set, In-Reply-To/References headers are set and "Re: " is prefixed to the subject.',
+            ),
+        },
+      },
+      async ({ to, subject, body, replyTo }) => {
+        this.logger.log(
+          `Tool "push_draft" called: to=[${to.join(', ')}]${replyTo ? ` replyTo="${replyTo}"` : ''}`,
+        );
+        const result = await this.emailHandlerService.pushDraft({
+          to,
+          subject,
+          body,
+          replyTo,
+        });
+
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
         };
       },
     );

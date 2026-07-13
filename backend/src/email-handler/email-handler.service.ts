@@ -7,10 +7,21 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { FetchMessageObject, ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
+import MailComposer from 'nodemailer/lib/mail-composer';
 import { EmailDetail } from './interfaces/email-detail.interface';
 import { EmailHeader } from './interfaces/email-header.interface';
+import {
+  PushDraftInput,
+  PushDraftResult,
+} from './interfaces/push-draft.interface';
 
 const MAILBOX = 'INBOX';
+const GENERATED_ADDRESS_SUFFIX = '.generated';
+
+interface ReplyHeaders {
+  inReplyTo: string;
+  references: string;
+}
 
 @Injectable()
 export class EmailHandlerService {
@@ -119,6 +130,121 @@ export class EmailHandlerService {
     });
   }
 
+  async pushDraft(input: PushDraftInput): Promise<PushDraftResult> {
+    const from = this.configService.getOrThrow<string>('EMAIL_IMAP_USER');
+    const to = input.to.map(
+      (address) => `${address}${GENERATED_ADDRESS_SUFFIX}`,
+    );
+    const draftsMailbox = this.configService.get<string>(
+      'EMAIL_DRAFTS_MAILBOX',
+      'Drafts',
+    );
+
+    this.logger.log(
+      `Pushing draft to [${to.join(', ')}]${input.replyTo ? ` (reply to "${input.replyTo}")` : ''}`,
+    );
+
+    const replyHeaders = input.replyTo
+      ? await this.resolveReplyHeaders(input.replyTo)
+      : undefined;
+    const subject = replyHeaders
+      ? this.withReplyPrefix(input.subject)
+      : input.subject;
+
+    const source = await this.buildDraftSource({
+      from,
+      to,
+      subject,
+      body: input.body,
+      inReplyTo: replyHeaders?.inReplyTo,
+      references: replyHeaders?.references,
+    });
+
+    return this.withConnection(async (client) => {
+      const response = await client.append(draftsMailbox, source, ['\\Draft']);
+      if (!response) {
+        throw new Error(`Failed to append draft to "${draftsMailbox}"`);
+      }
+      this.logger.log(
+        `Draft appended to "${response.destination}"${response.uid ? ` (uid ${response.uid})` : ''}`,
+      );
+      return {
+        id: response.uid !== undefined ? String(response.uid) : undefined,
+        mailbox: response.destination,
+      };
+    });
+  }
+
+  private async resolveReplyHeaders(id: string): Promise<ReplyHeaders> {
+    if (!/^\d+$/.test(id)) {
+      throw new BadRequestException(`"${id}" is not a valid e-mail id`);
+    }
+
+    return this.withMailbox(async (client) => {
+      const message = await client.fetchOne(
+        id,
+        { uid: true, envelope: true, headers: ['references'] },
+        { uid: true },
+      );
+
+      if (!message) {
+        throw new NotFoundException(
+          `E-mail with id "${id}" not found, cannot reply to it`,
+        );
+      }
+
+      const messageId = message.envelope?.messageId;
+      if (!messageId) {
+        throw new BadRequestException(
+          `E-mail with id "${id}" has no Message-ID, cannot reply to it`,
+        );
+      }
+
+      const existingReferences = this.parseReferencesHeader(message.headers);
+      return {
+        inReplyTo: messageId,
+        references: [...existingReferences, messageId].join(' '),
+      };
+    });
+  }
+
+  private parseReferencesHeader(headers?: Buffer): string[] {
+    if (!headers) {
+      return [];
+    }
+    const match = headers
+      .toString('utf-8')
+      .match(/^References:\s*([\s\S]*?)(?:\r?\n(?!\s)|$)/im);
+    if (!match) {
+      return [];
+    }
+    return match[1].match(/<[^>]+>/g) ?? [];
+  }
+
+  private withReplyPrefix(subject: string): string {
+    return /^re:/i.test(subject.trim()) ? subject : `Re: ${subject}`;
+  }
+
+  private async buildDraftSource(options: {
+    from: string;
+    to: string[];
+    subject: string;
+    body: string;
+    inReplyTo?: string;
+    references?: string;
+  }): Promise<Buffer> {
+    const composer = new MailComposer({
+      from: options.from,
+      to: options.to,
+      subject: options.subject,
+      text: options.body,
+      inReplyTo: options.inReplyTo,
+      references: options.references,
+    });
+
+    return composer.compile().build();
+  }
+
   private toEmailHeader(message: FetchMessageObject): EmailHeader {
     const envelope = message.envelope;
     return {
@@ -140,6 +266,27 @@ export class EmailHandlerService {
 
   private async withMailbox<T>(
     fn: (client: ImapFlow) => Promise<T>,
+    mailbox: string = MAILBOX,
+  ): Promise<T> {
+    return this.withConnection(async (client) => {
+      const lock = await client.getMailboxLock(mailbox);
+      this.logger.debug(`Locked mailbox "${mailbox}"`);
+      try {
+        return await fn(client);
+      } catch (error) {
+        this.logger.error(
+          `Mailbox operation on "${mailbox}" failed: ${this.describeError(error)}`,
+        );
+        throw error;
+      } finally {
+        lock.release();
+        this.logger.debug(`Released lock on mailbox "${mailbox}"`);
+      }
+    });
+  }
+
+  private async withConnection<T>(
+    fn: (client: ImapFlow) => Promise<T>,
   ): Promise<T> {
     const client = this.createClient();
     const host = this.configService.getOrThrow<string>('EMAIL_IMAP_HOST');
@@ -157,19 +304,7 @@ export class EmailHandlerService {
     this.logger.debug(`Connected to ${host}:${port}`);
 
     try {
-      const lock = await client.getMailboxLock(MAILBOX);
-      this.logger.debug(`Locked mailbox "${MAILBOX}"`);
-      try {
-        return await fn(client);
-      } catch (error) {
-        this.logger.error(
-          `Mailbox operation on "${MAILBOX}" failed: ${this.describeError(error)}`,
-        );
-        throw error;
-      } finally {
-        lock.release();
-        this.logger.debug(`Released lock on mailbox "${MAILBOX}"`);
-      }
+      return await fn(client);
     } finally {
       await client.logout();
       this.logger.debug(`Logged out of ${host}:${port}`);
