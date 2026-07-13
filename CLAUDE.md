@@ -51,3 +51,7 @@ it executes. Tools that perform such operations must be split into a "prepare" s
   a pending action that a human approves via the frontend before the actual side effect runs.
 - Read-only / reversible tools (e.g. looking up an order, drafting an e-mail, calculating a price) can run freely
   without human confirmation.
+- Whenever a new tool is registered on the MCP server (`backend/src/mcp/mcp-server.factory.ts`), update the
+  server's `instructions` string (passed to `new McpServer(...)`) to mention it by name. The `instructions` field
+  is what tells the agent to prefer this server's tools over generic/external ones for this domain — an outdated
+  `instructions` string means new tools silently go unused.
