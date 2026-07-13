@@ -13,10 +13,19 @@ export class McpServerFactory {
   constructor(private readonly emailHandlerService: EmailHandlerService) {}
 
   createServer(): McpServer {
-    const server = new McpServer({
-      name: SERVER_NAME,
-      version: SERVER_VERSION,
-    });
+    const server = new McpServer(
+      {
+        name: SERVER_NAME,
+        version: SERVER_VERSION,
+      },
+      {
+        instructions:
+          'This server manages e-mail for the Mystic Day Outlet webshop mailbox. ' +
+          'When asked about e-mails for this shop, use list_emails / get_email / ' +
+          'find_emails_by_address from this server — do not use Gmail or other ' +
+          'generic e-mail tools for this mailbox.',
+      },
+    );
 
     this.registerEmailTools(server);
 
