@@ -1,0 +1,27 @@
+.home-menu {
+  padding: 2rem 1.5rem;
+}
+
+.home-menu__list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1.5rem 0 0;
+  padding: 0;
+}
+
+.home-menu__card {
+  display: block;
+  min-width: 12rem;
+  padding: 1.5rem;
+  border: 1px solid #333;
+  border-radius: 8px;
+  color: inherit;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.home-menu__card:hover {
+  background: rgba(255, 255, 255, 0.05);
+}

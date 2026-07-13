@@ -14,7 +14,11 @@ export class EmailSignatureService {
   ) {}
 
   async getSignature(): Promise<EmailSignature | null> {
-    return this.repository.findOne({}, { orderBy: { id: 'asc' } });
+    const [signature] = await this.repository.find(
+      {},
+      { orderBy: { id: 'asc' }, limit: 1 },
+    );
+    return signature ?? null;
   }
 
   async updateSignature(

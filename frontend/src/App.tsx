@@ -1,5 +1,7 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AppLayout } from './layout/AppLayout';
+import { HomeMenu } from './home/HomeMenu';
+import { EmailSettingsView } from './email-settings/EmailSettingsView';
 import { TestMailView } from './test-mail/TestMailView';
 
 function App() {
@@ -7,7 +9,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route element={<AppLayout />}>
-          <Route index element={<Navigate to="/test/email" replace />} />
+          <Route index element={<HomeMenu />} />
+          <Route path="email-settings" element={<EmailSettingsView />} />
           <Route path="test/email" element={<TestMailView />} />
         </Route>
       </Routes>
