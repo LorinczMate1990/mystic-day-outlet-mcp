@@ -6,7 +6,7 @@ services:
       - ./backend:/app
     environment:
       - NODE_ENV=development
-    command: npm run start:dev
+    command: sh -c "npx mikro-orm migration:up && npm run start:dev"
 
   frontend:
     deploy:
