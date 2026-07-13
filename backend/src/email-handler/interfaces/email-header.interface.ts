@@ -4,5 +4,6 @@ export interface EmailHeader {
   from: string[];
   to: string[];
   cc: string[];
+  bcc: string[];
   date: Date;
 }

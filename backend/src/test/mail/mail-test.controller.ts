@@ -38,6 +38,16 @@ export class MailTestController {
     return this.emailHandlerService.listEmails(fromDate, toDate);
   }
 
+  @Get('by-address')
+  async findByAddress(
+    @Query('address') address: string,
+  ): Promise<EmailHeader[]> {
+    if (!address) {
+      throw new BadRequestException('Query parameter "address" is required');
+    }
+    return this.emailHandlerService.findEmailsByAddress(address);
+  }
+
   @Get(':id')
   async get(@Param('id') id: string): Promise<EmailDetailResponse> {
     const detail = await this.emailHandlerService.getEmail(id);

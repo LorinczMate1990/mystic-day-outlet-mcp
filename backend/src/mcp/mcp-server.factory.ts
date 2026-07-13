@@ -85,6 +85,26 @@ export class McpServerFactory {
         };
       },
     );
+    server.registerTool(
+      'find_emails_by_address',
+      {
+        title: 'Find e-mails by address',
+        description:
+          'List e-mail headers for every e-mail where the given address appears as sender, recipient (To), Cc, or Bcc.',
+        inputSchema: {
+          address: z.string().describe('The e-mail address to search for'),
+        },
+      },
+      async ({ address }) => {
+        this.logger.log(`Tool "find_emails_by_address" called: ${address}`);
+        const headers =
+          await this.emailHandlerService.findEmailsByAddress(address);
+
+        return {
+          content: [{ type: 'text', text: JSON.stringify(headers, null, 2) }],
+        };
+      },
+    );
   }
 
   private parseDate(value: string, field: string): Date {

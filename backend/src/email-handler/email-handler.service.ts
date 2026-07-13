@@ -83,6 +83,42 @@ export class EmailHandlerService {
     });
   }
 
+  async findEmailsByAddress(address: string): Promise<EmailHeader[]> {
+    this.logger.log(`Finding e-mails connected to address "${address}"`);
+
+    return this.withMailbox(async (client) => {
+      const uids = await client.search(
+        {
+          or: [
+            { from: address },
+            { to: address },
+            { cc: address },
+            { bcc: address },
+          ],
+        },
+        { uid: true },
+      );
+      if (!uids) {
+        this.logger.debug('Search returned no matching UIDs');
+        return [];
+      }
+      this.logger.debug(`Search matched ${uids.length} UID(s)`);
+
+      const headers: EmailHeader[] = [];
+      for await (const message of client.fetch(
+        uids,
+        { envelope: true, uid: true },
+        { uid: true },
+      )) {
+        headers.push(this.toEmailHeader(message));
+      }
+      this.logger.log(
+        `Fetched ${headers.length} e-mail header(s) connected to "${address}"`,
+      );
+      return headers;
+    });
+  }
+
   private toEmailHeader(message: FetchMessageObject): EmailHeader {
     const envelope = message.envelope;
     return {
@@ -91,6 +127,7 @@ export class EmailHandlerService {
       from: this.toAddressList(envelope?.from),
       to: this.toAddressList(envelope?.to),
       cc: this.toAddressList(envelope?.cc),
+      bcc: this.toAddressList(envelope?.bcc),
       date: envelope?.date ?? new Date(0),
     };
   }
