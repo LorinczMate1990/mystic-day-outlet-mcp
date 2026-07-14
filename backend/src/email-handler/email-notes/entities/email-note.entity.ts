@@ -6,7 +6,7 @@ export class EmailNote {
   @PrimaryKey()
   id!: number;
 
-  @Property()
+  @Property({ length: 320 })
   subject!: string;
 
   @Property({ type: 'text' })
