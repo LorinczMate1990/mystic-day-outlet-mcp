@@ -1,3 +1,11 @@
+export interface Note {
+  id: number;
+  subject: string;
+  body: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface EmailHeader {
   id: string;
   subject: string;
@@ -6,6 +14,7 @@ export interface EmailHeader {
   cc: string[];
   bcc: string[];
   date: string;
+  notes: Note[];
 }
 
 export interface AttachmentSummary {

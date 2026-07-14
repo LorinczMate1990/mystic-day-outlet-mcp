@@ -1,4 +1,4 @@
-import { EmailHeader } from './email-header.interface';
+import { EmailHeaderWithNotes } from './email-header.interface';
 
 export interface EmailAttachment {
   filename: string;
@@ -7,7 +7,7 @@ export interface EmailAttachment {
 }
 
 export interface EmailDetail {
-  header: EmailHeader;
+  header: EmailHeaderWithNotes;
   body: string;
   attachments: EmailAttachment[];
 }

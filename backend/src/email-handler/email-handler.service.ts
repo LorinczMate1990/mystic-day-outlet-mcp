@@ -10,8 +10,12 @@ import { simpleParser } from 'mailparser';
 import MailComposer from 'nodemailer/lib/mail-composer';
 import { EmailSignature } from '../email-signature/entities/email-signature.entity';
 import { EmailSignatureService } from '../email-signature/email-signature.service';
+import { NotesService } from '../notes/notes.service';
 import { EmailDetail } from './interfaces/email-detail.interface';
-import { EmailHeader } from './interfaces/email-header.interface';
+import {
+  EmailHeader,
+  EmailHeaderWithNotes,
+} from './interfaces/email-header.interface';
 import {
   PushDraftInput,
   PushDraftResult,
@@ -32,14 +36,15 @@ export class EmailHandlerService {
   constructor(
     private readonly configService: ConfigService,
     private readonly emailSignatureService: EmailSignatureService,
+    private readonly notesService: NotesService,
   ) {}
 
-  async listEmails(from: Date, to: Date): Promise<EmailHeader[]> {
+  async listEmails(from: Date, to: Date): Promise<EmailHeaderWithNotes[]> {
     this.logger.log(
       `Listing e-mails between ${from.toISOString()} and ${to.toISOString()}`,
     );
 
-    return this.withMailbox(async (client) => {
+    const headers = await this.withMailbox(async (client) => {
       const uids = await client.search(
         { since: from, before: to },
         { uid: true },
@@ -61,6 +66,7 @@ export class EmailHandlerService {
       this.logger.log(`Fetched ${headers.length} e-mail header(s)`);
       return headers;
     });
+    return this.notesService.attachNotesToHeaders(headers);
   }
 
   async getEmail(id: string): Promise<EmailDetail> {
@@ -87,8 +93,12 @@ export class EmailHandlerService {
         `Parsed e-mail "${id}": ${parsed.attachments.length} attachment(s)`,
       );
 
+      const [header] = await this.notesService.attachNotesToHeaders([
+        this.toEmailHeader(message),
+      ]);
+
       return {
-        header: this.toEmailHeader(message),
+        header,
         body: parsed.text ?? '',
         attachments: parsed.attachments.map((attachment) => ({
           filename: attachment.filename ?? 'attachment',
@@ -99,10 +109,10 @@ export class EmailHandlerService {
     });
   }
 
-  async findEmailsByAddress(address: string): Promise<EmailHeader[]> {
+  async findEmailsByAddress(address: string): Promise<EmailHeaderWithNotes[]> {
     this.logger.log(`Finding e-mails connected to address "${address}"`);
 
-    return this.withMailbox(async (client) => {
+    const headers = await this.withMailbox(async (client) => {
       const uids = await client.search(
         {
           or: [
@@ -133,6 +143,7 @@ export class EmailHandlerService {
       );
       return headers;
     });
+    return this.notesService.attachNotesToHeaders(headers);
   }
 
   async pushDraft(input: PushDraftInput): Promise<PushDraftResult> {

@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { EmailHandlerService } from '../../email-handler/email-handler.service';
-import { EmailHeader } from '../../email-handler/interfaces/email-header.interface';
+import { EmailHeaderWithNotes } from '../../email-handler/interfaces/email-header.interface';
 
 interface AttachmentSummary {
   index: number;
@@ -19,7 +19,7 @@ interface AttachmentSummary {
 }
 
 interface EmailDetailResponse {
-  header: EmailHeader;
+  header: EmailHeaderWithNotes;
   body: string;
   attachments: AttachmentSummary[];
 }
@@ -32,7 +32,7 @@ export class MailTestController {
   async list(
     @Query('from') from: string,
     @Query('to') to: string,
-  ): Promise<EmailHeader[]> {
+  ): Promise<EmailHeaderWithNotes[]> {
     const fromDate = this.parseDate(from, 'from');
     const toDate = this.parseDate(to, 'to');
     return this.emailHandlerService.listEmails(fromDate, toDate);
@@ -41,7 +41,7 @@ export class MailTestController {
   @Get('by-address')
   async findByAddress(
     @Query('address') address: string,
-  ): Promise<EmailHeader[]> {
+  ): Promise<EmailHeaderWithNotes[]> {
     if (!address) {
       throw new BadRequestException('Query parameter "address" is required');
     }

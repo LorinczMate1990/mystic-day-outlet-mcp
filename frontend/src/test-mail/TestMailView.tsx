@@ -150,7 +150,15 @@ export function TestMailView() {
                   onClick={() => handleSelectEmail(email.id)}
                 >
                   <td>{email.subject}</td>
-                  <td>{email.from.join(', ')}</td>
+                  <td>
+                    {email.from.join(', ')}
+                    {email.notes.length > 0 && (
+                      <span className="test-mail__notes-badge" title="Has notes">
+                        {' '}
+                        [{email.notes.length} note{email.notes.length === 1 ? '' : 's'}]
+                      </span>
+                    )}
+                  </td>
                   <td>{email.to.join(', ')}</td>
                   <td>{new Date(email.date).toLocaleString()}</td>
                 </tr>
@@ -182,6 +190,20 @@ export function TestMailView() {
                 <dt>Date</dt>
                 <dd>{new Date(detail.header.date).toLocaleString()}</dd>
               </dl>
+
+              <h3>Notes ({detail.header.notes.length})</h3>
+              {detail.header.notes.length === 0 && <p>No notes for this sender or its domain.</p>}
+              {detail.header.notes.length > 0 && (
+                <ul className="test-mail__notes">
+                  {detail.header.notes.map((note) => (
+                    <li key={note.id}>
+                      <span className="test-mail__notes-subject">{note.subject}</span> —{' '}
+                      {new Date(note.createdAt).toLocaleString()}
+                      <p>{note.body}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
 
               <h3>Body</h3>
               <pre className="test-mail__body">{detail.body}</pre>

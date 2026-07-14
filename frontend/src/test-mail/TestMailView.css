@@ -106,6 +106,37 @@
   word-break: break-word;
 }
 
+.test-mail__notes-badge {
+  color: #d4a72c;
+  font-size: 0.8rem;
+}
+
+.test-mail__notes {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.test-mail__notes li {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.test-mail__notes-subject {
+  font-family: monospace;
+  color: #888;
+}
+
+.test-mail__notes p {
+  margin: 0.25rem 0 0;
+  white-space: pre-wrap;
+}
+
 .test-mail__body {
   white-space: pre-wrap;
   word-break: break-word;

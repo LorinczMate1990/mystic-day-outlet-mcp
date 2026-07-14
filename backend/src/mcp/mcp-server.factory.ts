@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { EmailHandlerService } from '../email-handler/email-handler.service';
+import { NotesService } from '../notes/notes.service';
 
 const SERVER_NAME = 'mystic-day-outlet-mcp-server';
 const SERVER_VERSION = '0.1.0';
@@ -10,7 +11,10 @@ const SERVER_VERSION = '0.1.0';
 export class McpServerFactory {
   private readonly logger = new Logger(McpServerFactory.name);
 
-  constructor(private readonly emailHandlerService: EmailHandlerService) {}
+  constructor(
+    private readonly emailHandlerService: EmailHandlerService,
+    private readonly notesService: NotesService,
+  ) {}
 
   createServer(): McpServer {
     const server = new McpServer(
@@ -26,11 +30,19 @@ export class McpServerFactory {
           'or other generic e-mail tools for this mailbox. push_draft only creates ' +
           'a draft (recipients are suffixed with ".generated" so nothing can ever ' +
           'be sent accidentally) — it never sends anything, so it is safe to call ' +
-          'directly without human approval.',
+          'directly without human approval. Notes about a sender address or its domain ' +
+          '(billing quirks, trust level, special handling instructions, etc.) can be ' +
+          'recorded with add_note(subject, body) — subject is either a full e-mail ' +
+          'address or a bare domain, and notes are append-only history, never ' +
+          'overwritten. There is no lookup tool for notes: list_emails, get_email, and ' +
+          'find_emails_by_address already include a "notes" array on every e-mail, ' +
+          'auto-resolved from the sender address and its domain — that is always the way ' +
+          "to see a sender's notes.",
       },
     );
 
     this.registerEmailTools(server);
+    this.registerNotesTools(server);
 
     return server;
   }
@@ -168,6 +180,35 @@ export class McpServerFactory {
 
         return {
           content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        };
+      },
+    );
+  }
+
+  private registerNotesTools(server: McpServer): void {
+    server.registerTool(
+      'add_note',
+      {
+        title: 'Add note',
+        description:
+          'Append a note about an e-mail address or domain (e.g. billing quirks, trust level). ' +
+          'Notes are append-only — this never overwrites prior notes for the same subject, ' +
+          'history is preserved and later surfaced most-recent-first.',
+        inputSchema: {
+          subject: z
+            .string()
+            .describe(
+              'Either a full sender e-mail address (e.g. "foil.style@szamlazz.hu") or a bare domain (e.g. "szamlazz.hu")',
+            ),
+          body: z.string().min(1).describe('The note text'),
+        },
+      },
+      async ({ subject, body }) => {
+        this.logger.log(`Tool "add_note" called: subject="${subject}"`);
+        const note = await this.notesService.addNote(subject, body);
+
+        return {
+          content: [{ type: 'text', text: JSON.stringify(note, null, 2) }],
         };
       },
     );
