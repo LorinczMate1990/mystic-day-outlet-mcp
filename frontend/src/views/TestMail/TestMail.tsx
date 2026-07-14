@@ -1,8 +1,39 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { attachmentDownloadUrl, findEmailsByAddress, getEmail, listEmails } from './api';
-import type { EmailDetail, EmailHeader } from './types';
-import './TestMailView.css';
+import axios from 'axios';
+import './TestMail.css';
+
+interface EmailNote {
+  id: number;
+  subject: string;
+  body: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface EmailHeader {
+  id: string;
+  subject: string;
+  from: string[];
+  to: string[];
+  cc: string[];
+  bcc: string[];
+  date: string;
+  notes: EmailNote[];
+}
+
+interface AttachmentSummary {
+  index: number;
+  filename: string;
+  contentType: string;
+  size: number;
+}
+
+interface EmailDetail {
+  header: EmailHeader;
+  body: string;
+  attachments: AttachmentSummary[];
+}
 
 type SearchMode = 'range' | 'address';
 
@@ -13,7 +44,11 @@ function toDatetimeLocalDefault(daysAgo: number): string {
   return date.toISOString().slice(0, 16);
 }
 
-export function TestMailView() {
+function attachmentDownloadUrl(id: string, index: number): string {
+  return `/api/test/mail/${encodeURIComponent(id)}/attachments/${index}`;
+}
+
+function TestMail() {
   const [mode, setMode] = useState<SearchMode>('range');
   const [from, setFrom] = useState(toDatetimeLocalDefault(7));
   const [to, setTo] = useState(toDatetimeLocalDefault(0));
@@ -33,13 +68,17 @@ export function TestMailView() {
     setDetail(null);
     setSelectedId(null);
     try {
-      const result =
+      const response =
         mode === 'range'
-          ? await listEmails(new Date(from).toISOString(), new Date(to).toISOString())
-          : await findEmailsByAddress(address.trim());
-      setEmails(result);
-    } catch (error) {
-      setListError(error instanceof Error ? error.message : String(error));
+          ? await axios.get<EmailHeader[]>('/api/test/mail/list', {
+              params: { from: new Date(from).toISOString(), to: new Date(to).toISOString() },
+            })
+          : await axios.get<EmailHeader[]>('/api/test/mail/by-address', {
+              params: { address: address.trim() },
+            });
+      setEmails(response.data);
+    } catch {
+      setListError('Failed to load e-mails.');
       setEmails([]);
     } finally {
       setListLoading(false);
@@ -51,10 +90,10 @@ export function TestMailView() {
     setDetailLoading(true);
     setDetailError(null);
     try {
-      const result = await getEmail(id);
-      setDetail(result);
-    } catch (error) {
-      setDetailError(error instanceof Error ? error.message : String(error));
+      const response = await axios.get<EmailDetail>(`/api/test/mail/${encodeURIComponent(id)}`);
+      setDetail(response.data);
+    } catch {
+      setDetailError('Failed to load the e-mail.');
       setDetail(null);
     } finally {
       setDetailLoading(false);
@@ -70,18 +109,18 @@ export function TestMailView() {
   }
 
   return (
-    <div className="test-mail">
-      <h1>E-mail handler test view</h1>
-      <p className="test-mail__hint">
+    <div className="test-mail-container">
+      <h2 className="test-mail-title">E-mail handler test view</h2>
+      <p className="test-mail-hint">
         Exercises <code>EmailHandlerModule</code> via the <code>test/mail/*</code> endpoints (dev-only).
       </p>
 
-      <div className="test-mail__mode-toggle" role="tablist">
+      <div className="test-mail-mode-toggle" role="tablist">
         <button
           type="button"
           role="tab"
           aria-selected={mode === 'range'}
-          className={mode === 'range' ? 'test-mail__mode-btn test-mail__mode-btn--active' : 'test-mail__mode-btn'}
+          className={mode === 'range' ? 'test-mail-mode-btn test-mail-mode-btn-active' : 'test-mail-mode-btn'}
           onClick={() => handleModeChange('range')}
         >
           By date range
@@ -90,7 +129,7 @@ export function TestMailView() {
           type="button"
           role="tab"
           aria-selected={mode === 'address'}
-          className={mode === 'address' ? 'test-mail__mode-btn test-mail__mode-btn--active' : 'test-mail__mode-btn'}
+          className={mode === 'address' ? 'test-mail-mode-btn test-mail-mode-btn-active' : 'test-mail-mode-btn'}
           onClick={() => handleModeChange('address')}
         >
           By address
@@ -98,7 +137,7 @@ export function TestMailView() {
       </div>
 
       {mode === 'range' ? (
-        <form className="test-mail__form" onSubmit={handleListSubmit}>
+        <form className="test-mail-form" onSubmit={handleListSubmit}>
           <label>
             From
             <input type="datetime-local" value={from} onChange={(e) => setFrom(e.target.value)} required />
@@ -112,7 +151,7 @@ export function TestMailView() {
           </button>
         </form>
       ) : (
-        <form className="test-mail__form" onSubmit={handleListSubmit}>
+        <form className="test-mail-form" onSubmit={handleListSubmit}>
           <label>
             Address
             <input
@@ -129,11 +168,11 @@ export function TestMailView() {
         </form>
       )}
 
-      {listError && <p className="test-mail__error">{listError}</p>}
+      {listError && <p className="test-mail-error">{listError}</p>}
 
-      <div className="test-mail__layout">
-        <div className="test-mail__table-wrap">
-          <table className="test-mail__table">
+      <div className="test-mail-layout">
+        <div className="test-mail-table-wrap">
+          <table className="test-mail-table">
             <thead>
               <tr>
                 <th>Subject</th>
@@ -146,14 +185,14 @@ export function TestMailView() {
               {emails.map((email) => (
                 <tr
                   key={email.id}
-                  className={email.id === selectedId ? 'test-mail__row--selected' : undefined}
+                  className={email.id === selectedId ? 'test-mail-row-selected' : undefined}
                   onClick={() => handleSelectEmail(email.id)}
                 >
                   <td>{email.subject}</td>
                   <td>
                     {email.from.join(', ')}
                     {email.notes.length > 0 && (
-                      <span className="test-mail__notes-badge" title="Has notes">
+                      <span className="test-mail-notes-badge" title="Has notes">
                         {' '}
                         [{email.notes.length} note{email.notes.length === 1 ? '' : 's'}]
                       </span>
@@ -172,12 +211,12 @@ export function TestMailView() {
           </table>
         </div>
 
-        <div className="test-mail__detail">
+        <div className="test-mail-detail">
           {detailLoading && <p>Loading e-mail...</p>}
-          {detailError && <p className="test-mail__error">{detailError}</p>}
+          {detailError && <p className="test-mail-error">{detailError}</p>}
           {detail && (
             <>
-              <h2>{detail.header.subject}</h2>
+              <h3>{detail.header.subject}</h3>
               <dl>
                 <dt>From</dt>
                 <dd>{detail.header.from.join(', ')}</dd>
@@ -191,13 +230,13 @@ export function TestMailView() {
                 <dd>{new Date(detail.header.date).toLocaleString()}</dd>
               </dl>
 
-              <h3>Notes ({detail.header.notes.length})</h3>
+              <h4>Notes ({detail.header.notes.length})</h4>
               {detail.header.notes.length === 0 && <p>No notes for this sender or its domain.</p>}
               {detail.header.notes.length > 0 && (
-                <ul className="test-mail__notes">
+                <ul className="test-mail-notes">
                   {detail.header.notes.map((note) => (
                     <li key={note.id}>
-                      <span className="test-mail__notes-subject">{note.subject}</span> —{' '}
+                      <span className="test-mail-notes-subject">{note.subject}</span> —{' '}
                       {new Date(note.createdAt).toLocaleString()}
                       <p>{note.body}</p>
                     </li>
@@ -205,10 +244,10 @@ export function TestMailView() {
                 </ul>
               )}
 
-              <h3>Body</h3>
-              <pre className="test-mail__body">{detail.body}</pre>
+              <h4>Body</h4>
+              <pre className="test-mail-body">{detail.body}</pre>
 
-              <h3>Attachments ({detail.attachments.length})</h3>
+              <h4>Attachments ({detail.attachments.length})</h4>
               {detail.attachments.length === 0 && <p>No attachments.</p>}
               <ul>
                 {detail.attachments.map((attachment) => (
@@ -228,3 +267,5 @@ export function TestMailView() {
     </div>
   );
 }
+
+export default TestMail;

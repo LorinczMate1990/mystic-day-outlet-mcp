@@ -1,0 +1,49 @@
+.back-to-menu {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: var(--surface-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 0.5rem;
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  box-shadow: 0 2px 8px var(--shadow-light);
+  transition: all 0.2s ease;
+  z-index: 100;
+}
+
+.back-to-menu:hover {
+  background-color: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--shadow-medium);
+}
+
+.back-to-menu-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.back-to-menu-text {
+  line-height: 1;
+}
+
+/* Make sure there's room for the button on pages */
+@media (max-width: 600px) {
+  .back-to-menu {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .back-to-menu-icon {
+    width: 16px;
+    height: 16px;
+  }
+}

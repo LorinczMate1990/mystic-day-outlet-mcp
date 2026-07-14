@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react';
-import { deleteEmailNote, listEmailNotes, updateEmailNote } from './api';
-import type { EmailNote } from './types';
-import './EmailNotesView.css';
+import axios from 'axios';
+import './EmailNotes.css';
 
-export function EmailNotesView() {
+interface EmailNote {
+  id: number;
+  subject: string;
+  body: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+function EmailNotes() {
   const [notes, setNotes] = useState<EmailNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,9 +26,10 @@ export function EmailNotesView() {
   function load() {
     setLoading(true);
     setError(null);
-    listEmailNotes()
-      .then(setNotes)
-      .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)))
+    axios
+      .get<EmailNote[]>('/api/email-notes')
+      .then((response) => setNotes(response.data))
+      .catch(() => setError('Failed to load notes.'))
       .finally(() => setLoading(false));
   }
 
@@ -39,11 +47,11 @@ export function EmailNotesView() {
     setSavingId(id);
     setError(null);
     try {
-      const updated = await updateEmailNote(id, draftBody);
-      setNotes((prev) => prev.map((note) => (note.id === id ? updated : note)));
+      const response = await axios.put<EmailNote>(`/api/email-notes/${id}`, { body: draftBody });
+      setNotes((prev) => prev.map((note) => (note.id === id ? response.data : note)));
       setEditingId(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+    } catch {
+      setError('Failed to save the note.');
     } finally {
       setSavingId(null);
     }
@@ -56,33 +64,33 @@ export function EmailNotesView() {
     setDeletingId(id);
     setError(null);
     try {
-      await deleteEmailNote(id);
+      await axios.delete(`/api/email-notes/${id}`);
       setNotes((prev) => prev.filter((note) => note.id !== id));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+    } catch {
+      setError('Failed to delete the note.');
     } finally {
       setDeletingId(null);
     }
   }
 
   if (loading) {
-    return <p className="email-notes">Loading...</p>;
+    return <p className="email-notes-container">Loading...</p>;
   }
 
   return (
-    <div className="email-notes">
-      <h1>E-mail notes</h1>
-      <p className="email-notes__hint">
-        Notes recorded against a sender e-mail address or domain (e.g. by the agent via{' '}
-        <code>add_note</code>). They are auto-surfaced on matching e-mails.
+    <div className="email-notes-container">
+      <h2 className="email-notes-title">E-mail notes</h2>
+      <p className="email-notes-hint">
+        Notes recorded against a sender e-mail address or domain (e.g. by the agent via <code>add_note</code>). They
+        are auto-surfaced on matching e-mails.
       </p>
 
-      {error && <p className="email-notes__error">{error}</p>}
+      {error && <p className="email-notes-error">{error}</p>}
 
       {notes.length === 0 && <p>No notes yet.</p>}
 
       {notes.length > 0 && (
-        <table className="email-notes__table">
+        <table className="email-notes-table">
           <thead>
             <tr>
               <th>Subject</th>
@@ -95,8 +103,8 @@ export function EmailNotesView() {
           <tbody>
             {notes.map((note) => (
               <tr key={note.id}>
-                <td className="email-notes__subject">{note.subject}</td>
-                <td className="email-notes__body">
+                <td className="email-notes-subject">{note.subject}</td>
+                <td className="email-notes-body">
                   {editingId === note.id ? (
                     <textarea rows={3} value={draftBody} onChange={(e) => setDraftBody(e.target.value)} />
                   ) : (
@@ -105,7 +113,7 @@ export function EmailNotesView() {
                 </td>
                 <td>{new Date(note.createdAt).toLocaleString()}</td>
                 <td>{note.updatedAt ? new Date(note.updatedAt).toLocaleString() : '-'}</td>
-                <td className="email-notes__actions">
+                <td className="email-notes-actions">
                   {editingId === note.id ? (
                     <>
                       <button type="button" onClick={() => saveEdit(note.id)} disabled={savingId === note.id}>
@@ -134,3 +142,5 @@ export function EmailNotesView() {
     </div>
   );
 }
+
+export default EmailNotes;

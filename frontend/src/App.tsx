@@ -1,22 +1,15 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { AppLayout } from './layout/AppLayout';
-import { HomeMenu } from './home/HomeMenu';
-import { EmailSettingsView } from './email-settings/EmailSettingsView';
-import { EmailNotesView } from './email-notes/EmailNotesView';
-import { TestMailView } from './test-mail/TestMailView';
+import { Link } from 'react-router-dom';
+import './App.css';
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route element={<AppLayout />}>
-          <Route index element={<HomeMenu />} />
-          <Route path="email-settings" element={<EmailSettingsView />} />
-          <Route path="email-notes" element={<EmailNotesView />} />
-          <Route path="test/email" element={<TestMailView />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <div className="app">
+      <nav className="menu">
+        <Link to="/email-settings" className="menu-item">E-mail settings</Link>
+        <Link to="/email-notes" className="menu-item">Notes</Link>
+        <Link to="/test/email" className="menu-item">Test</Link>
+      </nav>
+    </div>
   );
 }
 

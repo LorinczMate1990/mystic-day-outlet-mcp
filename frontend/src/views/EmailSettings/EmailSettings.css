@@ -1,0 +1,44 @@
+.email-settings-container {
+  padding: 2rem 1.5rem;
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+.email-settings-hint {
+  color: var(--text-hint);
+}
+
+.email-settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.email-settings-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.email-settings-form textarea {
+  font-family: monospace;
+  resize: vertical;
+}
+
+.email-settings-preview {
+  padding: 1rem;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  overflow: auto;
+}
+
+.email-settings-error {
+  color: var(--danger);
+}
+
+.email-settings-success {
+  color: var(--success);
+}

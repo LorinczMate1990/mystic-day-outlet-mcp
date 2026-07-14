@@ -5,7 +5,7 @@ interface ShadowHtmlProps {
   className?: string;
 }
 
-export function ShadowHtml({ html, className }: ShadowHtmlProps) {
+function ShadowHtml({ html, className }: ShadowHtmlProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const shadowRef = useRef<ShadowRoot | null>(null);
 
@@ -18,3 +18,5 @@ export function ShadowHtml({ html, className }: ShadowHtmlProps) {
 
   return <div ref={hostRef} className={className} />;
 }
+
+export default ShadowHtml;

@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { getEmailSignature, updateEmailSignature } from './api';
-import { ShadowHtml } from './ShadowHtml';
-import './EmailSettingsView.css';
+import axios from 'axios';
+import ShadowHtml from '../../components/ShadowHtml/ShadowHtml';
+import './EmailSettings.css';
 
-export function EmailSettingsView() {
+interface EmailSignature {
+  id: number;
+  textBody: string;
+  htmlBody?: string;
+  updatedAt: string;
+}
+
+function EmailSettings() {
   const [textBody, setTextBody] = useState('');
   const [htmlBody, setHtmlBody] = useState('');
   const [loading, setLoading] = useState(true);
@@ -13,12 +20,13 @@ export function EmailSettingsView() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    getEmailSignature()
-      .then((signature) => {
-        setTextBody(signature?.textBody ?? '');
-        setHtmlBody(signature?.htmlBody ?? '');
+    axios
+      .get<EmailSignature | null>('/api/email-signature')
+      .then((response) => {
+        setTextBody(response.data?.textBody ?? '');
+        setHtmlBody(response.data?.htmlBody ?? '');
       })
-      .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)))
+      .catch(() => setError('Failed to load the e-mail signature.'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -28,40 +36,40 @@ export function EmailSettingsView() {
     setError(null);
     setSaved(false);
     try {
-      await updateEmailSignature({ textBody, htmlBody: htmlBody || undefined });
+      await axios.put('/api/email-signature', { textBody, htmlBody: htmlBody || undefined });
       setSaved(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+    } catch {
+      setError('Failed to save the e-mail signature.');
     } finally {
       setSaving(false);
     }
   }
 
   if (loading) {
-    return <p className="email-settings">Loading...</p>;
+    return <p className="email-settings-container">Loading...</p>;
   }
 
   return (
-    <div className="email-settings">
-      <h1>E-mail settings</h1>
-      <p className="email-settings__hint">
+    <div className="email-settings-container">
+      <h2 className="email-settings-title">E-mail settings</h2>
+      <p className="email-settings-hint">
         These signatures are appended to outgoing drafts — the plain text one for text bodies, the HTML one (can
         include an image) for HTML bodies.
       </p>
 
-      <form className="email-settings__form" onSubmit={handleSubmit}>
+      <form className="email-settings-form" onSubmit={handleSubmit}>
         <label>
           Plain text signature
           <textarea rows={6} value={textBody} onChange={(e) => setTextBody(e.target.value)} />
         </label>
         <label>
           HTML signature
-          <ShadowHtml html={htmlBody} className="email-settings__preview" />
+          <ShadowHtml html={htmlBody} className="email-settings-preview" />
           <textarea rows={10} value={htmlBody} onChange={(e) => setHtmlBody(e.target.value)} />
         </label>
 
-        {error && <p className="email-settings__error">{error}</p>}
-        {saved && <p className="email-settings__success">Saved.</p>}
+        {error && <p className="email-settings-error">{error}</p>}
+        {saved && <p className="email-settings-success">Saved.</p>}
 
         <button type="submit" disabled={saving}>
           {saving ? 'Saving...' : 'Save'}
@@ -70,3 +78,5 @@ export function EmailSettingsView() {
     </div>
   );
 }
+
+export default EmailSettings;

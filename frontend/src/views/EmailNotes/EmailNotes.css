@@ -1,0 +1,47 @@
+.email-notes-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  text-align: left;
+}
+
+.email-notes-hint {
+  color: var(--text-hint);
+  margin-bottom: 1.5rem;
+}
+
+.email-notes-error {
+  color: var(--danger);
+}
+
+.email-notes-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.email-notes-table th,
+.email-notes-table td {
+  vertical-align: top;
+}
+
+.email-notes-subject {
+  width: 18%;
+  font-family: monospace;
+}
+
+.email-notes-body {
+  white-space: pre-wrap;
+}
+
+.email-notes-body textarea {
+  width: 100%;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.email-notes-actions {
+  width: 1%;
+  white-space: nowrap;
+  display: flex;
+  gap: 0.4rem;
+}
