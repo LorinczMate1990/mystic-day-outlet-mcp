@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { EmailNotesService } from '../email-handler/email-notes/email-notes.service';
 import { EmailHandlerService } from '../email-handler/email-handler.service';
-import { NotesService } from '../notes/notes.service';
 
 const SERVER_NAME = 'mystic-day-outlet-mcp-server';
 const SERVER_VERSION = '0.1.0';
@@ -13,7 +13,7 @@ export class McpServerFactory {
 
   constructor(
     private readonly emailHandlerService: EmailHandlerService,
-    private readonly notesService: NotesService,
+    private readonly emailNotesService: EmailNotesService,
   ) {}
 
   createServer(): McpServer {
@@ -205,7 +205,7 @@ export class McpServerFactory {
       },
       async ({ subject, body }) => {
         this.logger.log(`Tool "add_note" called: subject="${subject}"`);
-        const note = await this.notesService.addNote(subject, body);
+        const note = await this.emailNotesService.addEmailNote(subject, body);
 
         return {
           content: [{ type: 'text', text: JSON.stringify(note, null, 2) }],

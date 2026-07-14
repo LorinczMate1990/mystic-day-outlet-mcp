@@ -1,4 +1,4 @@
-export interface Note {
+export interface EmailNote {
   id: number;
   subject: string;
   body: string;
@@ -14,7 +14,7 @@ export interface EmailHeader {
   cc: string[];
   bcc: string[];
   date: string;
-  notes: Note[];
+  notes: EmailNote[];
 }
 
 export interface AttachmentSummary {

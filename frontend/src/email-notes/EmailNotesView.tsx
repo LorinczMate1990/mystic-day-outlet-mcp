@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { deleteNote, listNotes, updateNote } from './api';
-import type { Note } from './types';
-import './NotesView.css';
+import { deleteEmailNote, listEmailNotes, updateEmailNote } from './api';
+import type { EmailNote } from './types';
+import './EmailNotesView.css';
 
-export function NotesView() {
-  const [notes, setNotes] = useState<Note[]>([]);
+export function EmailNotesView() {
+  const [notes, setNotes] = useState<EmailNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -19,13 +19,13 @@ export function NotesView() {
   function load() {
     setLoading(true);
     setError(null);
-    listNotes()
+    listEmailNotes()
       .then(setNotes)
       .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)))
       .finally(() => setLoading(false));
   }
 
-  function startEdit(note: Note) {
+  function startEdit(note: EmailNote) {
     setEditingId(note.id);
     setDraftBody(note.body);
   }
@@ -39,7 +39,7 @@ export function NotesView() {
     setSavingId(id);
     setError(null);
     try {
-      const updated = await updateNote(id, draftBody);
+      const updated = await updateEmailNote(id, draftBody);
       setNotes((prev) => prev.map((note) => (note.id === id ? updated : note)));
       setEditingId(null);
     } catch (err) {
@@ -56,7 +56,7 @@ export function NotesView() {
     setDeletingId(id);
     setError(null);
     try {
-      await deleteNote(id);
+      await deleteEmailNote(id);
       setNotes((prev) => prev.filter((note) => note.id !== id));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -66,23 +66,23 @@ export function NotesView() {
   }
 
   if (loading) {
-    return <p className="notes">Loading...</p>;
+    return <p className="email-notes">Loading...</p>;
   }
 
   return (
-    <div className="notes">
-      <h1>Notes</h1>
-      <p className="notes__hint">
+    <div className="email-notes">
+      <h1>E-mail notes</h1>
+      <p className="email-notes__hint">
         Notes recorded against a sender e-mail address or domain (e.g. by the agent via{' '}
         <code>add_note</code>). They are auto-surfaced on matching e-mails.
       </p>
 
-      {error && <p className="notes__error">{error}</p>}
+      {error && <p className="email-notes__error">{error}</p>}
 
       {notes.length === 0 && <p>No notes yet.</p>}
 
       {notes.length > 0 && (
-        <table className="notes__table">
+        <table className="email-notes__table">
           <thead>
             <tr>
               <th>Subject</th>
@@ -95,8 +95,8 @@ export function NotesView() {
           <tbody>
             {notes.map((note) => (
               <tr key={note.id}>
-                <td className="notes__subject">{note.subject}</td>
-                <td className="notes__body">
+                <td className="email-notes__subject">{note.subject}</td>
+                <td className="email-notes__body">
                   {editingId === note.id ? (
                     <textarea rows={3} value={draftBody} onChange={(e) => setDraftBody(e.target.value)} />
                   ) : (
@@ -105,7 +105,7 @@ export function NotesView() {
                 </td>
                 <td>{new Date(note.createdAt).toLocaleString()}</td>
                 <td>{note.updatedAt ? new Date(note.updatedAt).toLocaleString() : '-'}</td>
-                <td className="notes__actions">
+                <td className="email-notes__actions">
                   {editingId === note.id ? (
                     <>
                       <button type="button" onClick={() => saveEdit(note.id)} disabled={savingId === note.id}>

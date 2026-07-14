@@ -10,7 +10,7 @@ import { simpleParser } from 'mailparser';
 import MailComposer from 'nodemailer/lib/mail-composer';
 import { EmailSignature } from '../email-signature/entities/email-signature.entity';
 import { EmailSignatureService } from '../email-signature/email-signature.service';
-import { NotesService } from '../notes/notes.service';
+import { EmailNotesService } from './email-notes/email-notes.service';
 import { EmailDetail } from './interfaces/email-detail.interface';
 import {
   EmailHeader,
@@ -36,7 +36,7 @@ export class EmailHandlerService {
   constructor(
     private readonly configService: ConfigService,
     private readonly emailSignatureService: EmailSignatureService,
-    private readonly notesService: NotesService,
+    private readonly emailNotesService: EmailNotesService,
   ) {}
 
   async listEmails(from: Date, to: Date): Promise<EmailHeaderWithNotes[]> {
@@ -66,7 +66,7 @@ export class EmailHandlerService {
       this.logger.log(`Fetched ${headers.length} e-mail header(s)`);
       return headers;
     });
-    return this.notesService.attachNotesToHeaders(headers);
+    return this.emailNotesService.attachNotesToHeaders(headers);
   }
 
   async getEmail(id: string): Promise<EmailDetail> {
@@ -93,7 +93,7 @@ export class EmailHandlerService {
         `Parsed e-mail "${id}": ${parsed.attachments.length} attachment(s)`,
       );
 
-      const [header] = await this.notesService.attachNotesToHeaders([
+      const [header] = await this.emailNotesService.attachNotesToHeaders([
         this.toEmailHeader(message),
       ]);
 
@@ -143,7 +143,7 @@ export class EmailHandlerService {
       );
       return headers;
     });
-    return this.notesService.attachNotesToHeaders(headers);
+    return this.emailNotesService.attachNotesToHeaders(headers);
   }
 
   async pushDraft(input: PushDraftInput): Promise<PushDraftResult> {

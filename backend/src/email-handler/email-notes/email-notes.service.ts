@@ -9,19 +9,19 @@ import { EntityRepository } from '@mikro-orm/postgresql';
 import {
   EmailHeader,
   EmailHeaderWithNotes,
-} from '../email-handler/interfaces/email-header.interface';
-import { Note } from './entities/note.entity';
+} from '../interfaces/email-header.interface';
+import { EmailNote } from './entities/email-note.entity';
 
 @Injectable()
-export class NotesService {
-  private readonly logger = new Logger(NotesService.name);
+export class EmailNotesService {
+  private readonly logger = new Logger(EmailNotesService.name);
 
   constructor(
-    @InjectRepository(Note)
-    private readonly repository: EntityRepository<Note>,
+    @InjectRepository(EmailNote)
+    private readonly repository: EntityRepository<EmailNote>,
   ) {}
 
-  async addNote(subject: string, body: string): Promise<Note> {
+  async addEmailNote(subject: string, body: string): Promise<EmailNote> {
     const normalized = this.normalize(subject);
     if (!normalized) {
       throw new BadRequestException('"subject" is required');
@@ -30,37 +30,37 @@ export class NotesService {
       throw new BadRequestException('"body" is required');
     }
 
-    const note = new Note();
+    const note = new EmailNote();
     note.subject = normalized;
     note.body = body;
 
     await this.repository.getEntityManager().persistAndFlush(note);
-    this.logger.log(`Note added for "${normalized}" (id ${note.id})`);
+    this.logger.log(`E-mail note added for "${normalized}" (id ${note.id})`);
     return note;
   }
 
-  async listAllNotes(): Promise<Note[]> {
+  async listAllEmailNotes(): Promise<EmailNote[]> {
     return this.repository.find({}, { orderBy: { createdAt: 'desc' } });
   }
 
-  async updateNote(id: number, body: string): Promise<Note> {
+  async updateEmailNote(id: number, body: string): Promise<EmailNote> {
     const note = await this.findByIdOrFail(id);
     note.body = body;
     await this.repository.getEntityManager().persistAndFlush(note);
-    this.logger.log(`Note updated (id ${id})`);
+    this.logger.log(`E-mail note updated (id ${id})`);
     return note;
   }
 
-  async deleteNote(id: number): Promise<void> {
+  async deleteEmailNote(id: number): Promise<void> {
     const note = await this.findByIdOrFail(id);
     await this.repository.getEntityManager().removeAndFlush(note);
-    this.logger.log(`Note deleted (id ${id})`);
+    this.logger.log(`E-mail note deleted (id ${id})`);
   }
 
-  private async findByIdOrFail(id: number): Promise<Note> {
+  private async findByIdOrFail(id: number): Promise<EmailNote> {
     const note = await this.repository.findOne({ id });
     if (!note) {
-      throw new NotFoundException(`Note with id "${id}" not found`);
+      throw new NotFoundException(`E-mail note with id "${id}" not found`);
     }
     return note;
   }
@@ -95,7 +95,7 @@ export class NotesService {
       { subject: { $in: [...subjects] } },
       { orderBy: { createdAt: 'desc' } },
     );
-    const bySubject = new Map<string, Note[]>();
+    const bySubject = new Map<string, EmailNote[]>();
     for (const note of notes) {
       const list = bySubject.get(note.subject) ?? [];
       list.push(note);
@@ -103,7 +103,7 @@ export class NotesService {
     }
 
     return headers.map((header) => {
-      const matched: Note[] = [];
+      const matched: EmailNote[] = [];
       const seen = new Set<number>();
       for (const address of header.from) {
         const normalized = this.normalize(address);

@@ -1,8 +1,8 @@
 import { Entity, Index, PrimaryKey, Property } from '@mikro-orm/core';
 
-@Entity({ tableName: 'note' })
+@Entity({ tableName: 'email_note' })
 @Index({ properties: ['subject'] })
-export class Note {
+export class EmailNote {
   @PrimaryKey()
   id!: number;
 

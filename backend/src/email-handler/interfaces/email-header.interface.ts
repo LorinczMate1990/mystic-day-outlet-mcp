@@ -1,4 +1,4 @@
-import { Notes } from '../../notes/interfaces/note.interface';
+import { EmailNotes } from '../email-notes/interfaces/email-note.interface';
 
 export interface EmailHeader {
   id: string;
@@ -10,4 +10,4 @@ export interface EmailHeader {
   date: Date;
 }
 
-export interface EmailHeaderWithNotes extends EmailHeader, Notes {}
+export interface EmailHeaderWithNotes extends EmailHeader, EmailNotes {}

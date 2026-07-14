@@ -1,4 +1,4 @@
-export interface Note {
+export interface EmailNote {
   id: number;
   subject: string;
   body: string;
