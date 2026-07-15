@@ -5,7 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { EmailHandlerModule } from './email-handler/email-handler.module';
 import { EmailNotesModule } from './email-handler/email-notes/email-notes.module';
-import { EmailSignatureModule } from './email-signature/email-signature.module';
+import { EmailSignatureModule } from './email-handler/email-signature/email-signature.module';
 import { McpModule } from './mcp/mcp.module';
 import { MailTestModule } from './test/mail/mail-test.module';
 import mikroOrmConfig from './mikro-orm.config';

@@ -8,8 +8,8 @@ import { ConfigService } from '@nestjs/config';
 import { FetchMessageObject, ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import MailComposer from 'nodemailer/lib/mail-composer';
-import { EmailSignature } from '../email-signature/entities/email-signature.entity';
-import { EmailSignatureService } from '../email-signature/email-signature.service';
+import { EmailSignature } from './email-signature/entities/email-signature.entity';
+import { EmailSignatureService } from './email-signature/email-signature.service';
 import { EmailNotesService } from './email-notes/email-notes.service';
 import { EmailDetail } from './interfaces/email-detail.interface';
 import {
